@@ -10,7 +10,7 @@ import "database/sql"
 import _ "github.com/go-sql-driver/mysql"
 import "github.com/Pallinder/go-randomdata"
 
-const DB_CONN = "herl_user:notsecure@tcp(herl-mysql.c7glrswbovia.us-east-1.rds.amazonaws.com:3306)/herl"
+const DB_CONN = "herl_user:notsecure@tcp(herl-mysql.c7glrswbovia.us-east-1.rds.amazonaws.com:3306)/herl" //yes, this is public, no it's not great but I'm also not depending on the password for security here
 const NUMBER_OF_THREADS = 10
 const NUMBER_OF_USERS = 10000
 
