@@ -49,56 +49,72 @@ func makeTable(db *sql.DB) error {
 }
 
 func showTables(db *sql.DB) error {
-	tableRows, err := db.Query("show tables;")
+    tableRows, err := db.Query("show tables;")
 
-	if err != nil {
-		return err
-	}
-	defer tableRows.Close()
+    if err != nil {
+            return err
+    }
+    defer tableRows.Close()
 
-	var table string
-	for tableRows.Next() {
-		fmt.Println("iterate!")
-		tableRows.Scan(&table)
-		fmt.Println(table)
-	}
+    var table string
+    for tableRows.Next() {
+            fmt.Println("iterate!")
+            tableRows.Scan(&table)
+            fmt.Println(table)
+    }
 
-	return nil
+    return nil
 }
 
 func dropTable(db *sql.DB) error {
-	dropResult, err := db.Query("DROP TABLE `herl`.`users`;")
-	if err != nil {
-		return err
-	}
-	dropResult.Close()
+    dropResult, err := db.Query("DROP TABLE `herl`.`users`;")
+    if err != nil {
+            return err
+    }
+    dropResult.Close()
 
-	return nil
+    return nil
 }
 
 func dropTableClosure(db *sql.DB) {
-	err := dropTable(db)
-	if err != nil {
-		panic(err)
-	}
+    err := dropTable(db)
+    if err != nil {
+            panic(err)
+    }
 }
 
 func createUsers(results chan<- bool) {
-	db := dbConn()
-	defer db.Close()
+    db := dbConn()
+    defer db.Close()
 
-	insert, err := db.Prepare("INSERT INTO `herl`.`users` (`email`, `firstname`, `lastname`) VALUES( ?, ?, ? )")
-	if err != nil {
-		panic(err)
-	}
+    for i := 0; i < (NUMBER_OF_USERS / NUMBER_OF_THREADS); i++ {
+        benchmarkWrite(db)	
+        results <- true
+    }
+}
 
-	for i := 0; i < (NUMBER_OF_USERS / NUMBER_OF_THREADS); i++ {
-		_, err = insert.Exec(randomdata.Email(), randomdata.FirstName(randomdata.RandomGender), randomdata.LastName())
-		if err != nil {
-			panic(err)
-		}
-		results <- true
-	}
+func benchmarkWrite(db *sql.DB) {
+    
+    insert, err := db.Prepare("INSERT INTO `herl`.`users` (`email`, `firstname`, `lastname`) VALUES( ?, ?, ? )")
+    if err != nil {
+        panic(err)
+    }
+    
+    _, err = insert.Exec(randomdata.Email(), randomdata.FirstName(randomdata.RandomGender), randomdata.LastName())
+    if err != nil {
+        panic(err)
+    }
+    
+}
+
+func benchmarkRead(db *sql.DB) {
+    statement, err := db.Query("select * from `herl`.`users` where firstname.lower() like \"f%\";")
+    if err != nil {
+        panic(err)
+    }
+    
+    
+    
 }
 
 func pollDBSize(tick <-chan time.Time, stop <-chan bool) {
@@ -186,11 +202,28 @@ func generateData(db *sql.DB) {
 }
 
 func main() {
-        db := prepare()
-        defer db.Close()
-        
-        generateData(db)
+    db := prepare()
+    defer db.Close()
+    
+    generateData(db)
+    for {
+        benchmarkRead(db)
+    }
 
-        //generate data 
+    /*
+    signals := make(chan os.Signal, 1)
+    done := make(chan bool, 1)
+    latencies := make(chan uint32, 2147483647)
+    
+    signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+    
+    go func() {
+        signal := <- signals
+        fmt.Println(signal)
+        done <- true
+    }()
+    */
+    
+    
 	
 }
